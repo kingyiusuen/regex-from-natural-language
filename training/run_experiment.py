@@ -30,7 +30,6 @@ def main() -> None:
     args = parser.parse_args()
 
     seed_everything(args.seed)
-    import ipdb;ipdb.set_trace()
 
     datamodule = NLRXDataModule(
         batch_size=args.batch_size,
@@ -56,11 +55,12 @@ def main() -> None:
     prediction_writer_callback = PredictionWriter(filename="predictions")
     callbacks = [model_checkpoint_callback, prediction_writer_callback]
 
-    logger = WandbLogger(name="regex", log_model=True)
+    logger = WandbLogger(name="regex-from-natural-language", log_model=True)
     logger.watch(model)
     logger.log_hyperparams(vars(args))
 
     trainer = Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
+    trainer.tune(model, datamodule=datamodule)
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule)
 

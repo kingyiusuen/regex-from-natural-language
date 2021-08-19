@@ -65,8 +65,8 @@ class LitSeq2Seq(LightningModule):
                 max_len = tgt.size(0)
 
         batch_size = src.size(1)
-        outputs = torch.zeros(max_len, batch_size, self.decoder.tgt_vocab_size, dtype=torch.float32)
-        preds = torch.zeros(max_len, batch_size, dtype=torch.int64)
+        outputs = torch.zeros(max_len, batch_size, self.decoder.tgt_vocab_size, dtype=torch.float32, device=self.device)
+        preds = torch.zeros(max_len, batch_size, dtype=torch.int64, device=self.device)
         preds[0] = self.sos_index
 
         encoder_outputs, hidden = self.encoder(src)
