@@ -44,7 +44,7 @@ class LitSeq2Seq(LightningModule):
         self.loss_fn = nn.CrossEntropyLoss(ignore_index=self.pad_index)
         self.cer = CER(ignore_indices=self.src_tokenizer.ignore_indices)
 
-    def forward(self, src, tgt=None, teacher_forcing_ratio=None, max_len=None):
+    def forward(self, src, tgt=None, src_mask=None, teacher_forcing_ratio=None, max_len=None):
         """
         Args:
             src: (src_len, batch_size)
@@ -73,7 +73,7 @@ class LitSeq2Seq(LightningModule):
         hidden = hidden[: self.encoder.num_layers]  # Hidden states from encoder's forward RNN
         decoder_input = preds.data[0]
         for t in range(1, max_len):
-            output, hidden, _ = self.decoder(decoder_input, hidden, encoder_outputs)
+            output, hidden, _ = self.decoder(decoder_input, hidden, encoder_outputs, src_mask)
             outputs[t] = output.clone()
             top1 = output.argmax(1)
             use_teacher_forcing = random.random() < teacher_forcing_ratio
@@ -85,11 +85,11 @@ class LitSeq2Seq(LightningModule):
         return outputs, preds
 
     def shared_step(self, batch, mode: str):
-        src, tgt = batch
+        src, tgt, src_mask = batch
         if mode == "train":
-            outputs, preds = self(src, tgt, teacher_forcing_ratio=self.teacher_forcing_ratio)
+            outputs, preds = self(src, tgt, src_mask, teacher_forcing_ratio=self.teacher_forcing_ratio)
         else:
-            outputs, preds = self(src, tgt=None, teacher_forcing_ratio=0, max_len=tgt.size(0))
+            outputs, preds = self(src, None, src_mask, teacher_forcing_ratio=0, max_len=tgt.size(0))
 
         outputs = outputs.permute(1, 2, 0)  # (batch_size, tgt_vocab_size, tgt_len)
         preds = preds.permute(1, 0)  # (batch_size, tgt_len)

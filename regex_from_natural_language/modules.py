@@ -48,11 +48,12 @@ class Attention(nn.Module):
         std_v = 1.0 / math.sqrt(self.v.size(0))
         self.v.data.uniform_(-std_v, std_v)
 
-    def forward(self, hidden, encoder_outputs):
+    def forward(self, hidden, encoder_outputs, src_mask):
         """
         Args:
             hidden: (1, batch_size, hidden_dim)
             encoder_outputs: (src_len, batch_size, hidden_dim)
+            src_mask: (src_len, batch_size)
 
         Returns:
             (batch_size, 1, src_len)
@@ -61,6 +62,8 @@ class Attention(nn.Module):
         h = hidden.repeat(src_len, 1, 1).transpose(0, 1)  # (batch_size, src_len, hidden_dim)
         encoder_outputs = encoder_outputs.transpose(0, 1)  # (batch_size, src_len, hidden_dim)
         attn_energies = self.score(h, encoder_outputs)  # (batch_size, src_len)
+        if src_mask is not None:
+            attn_energies = attn_energies.masked_fill(~src_mask.transpose(0, 1), float("-inf"))
         return F.softmax(attn_energies, dim=1).unsqueeze(1)  # (batch_size, 1, src_len)
 
     def score(self, hidden, encoder_outputs):
@@ -73,7 +76,7 @@ class Attention(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, tgt_vocab_size, embedding_dim, hidden_dim, num_layeres, dropout):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.tgt_vocab_size = tgt_vocab_size
         self.num_layeres = num_layeres
 
@@ -83,12 +86,13 @@ class Decoder(nn.Module):
         self.rnn = nn.GRU(embedding_dim + hidden_dim, hidden_dim, num_layeres, dropout=dropout)
         self.fc = nn.Linear(embedding_dim + hidden_dim * 2, tgt_vocab_size)
 
-    def forward(self, input, prev_hidden, encoder_outputs):
+    def forward(self, input, prev_hidden, encoder_outputs, src_mask):
         """
         Args:
             input: (batch_size)
             prev_hidden: (num_layers, batch_size, hidden_dim)
             encoder_outputs: (src_len, batch_size, hidden_dim)
+            src_mask: (src_len, batch_size)
 
         Returns:
             output: (batch_size, hidden_dim)
@@ -98,7 +102,7 @@ class Decoder(nn.Module):
         embedded = self.embedding(input).unsqueeze(0)  # (1, batch_size, embedding_dim)
         embedded = self.dropout(embedded)  # (1, batch_size, embedding_dim)
 
-        attn_weights = self.attention(prev_hidden[-1], encoder_outputs)  # (batch_size, 1, src_len)
+        attn_weights = self.attention(prev_hidden[-1], encoder_outputs, src_mask)  # (batch_size, 1, src_len)
         context = torch.bmm(attn_weights, encoder_outputs.transpose(0, 1))  # (batch_size, 1, hidden_dim)
         context = context.transpose(0, 1)  # (1, batch_size, hidden_dim)
 

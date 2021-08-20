@@ -20,7 +20,7 @@ URLS = {
 
 
 def read_txt(filename):
-    return [line.strip().split(" ") for line in open(filename, "r")]
+    return [line.strip().split(" ") for line in open(filename)]
 
 
 class NLRXDataset(Dataset):
@@ -118,10 +118,12 @@ class NLRXDataModule(LightningDataModule):
         tgt_len = max(len(tgt) for tgt in tgts)
         srcs_tensor = torch.full((src_len, batch_size), fill_value=self.src_tokenizer.pad_index)
         tgts_tensor = torch.full((tgt_len, batch_size), fill_value=self.src_tokenizer.pad_index)
+        src_mask = torch.zeros((src_len, batch_size), dtype=torch.bool)
         for i, (src, tgt) in enumerate(zip(srcs, tgts)):
             srcs_tensor[: len(src), i] = torch.tensor(src)
             tgts_tensor[: len(tgt), i] = torch.tensor(tgt)
-        return srcs_tensor, tgts_tensor
+            src_mask[: len(src), i] = True
+        return srcs_tensor, tgts_tensor, src_mask
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
