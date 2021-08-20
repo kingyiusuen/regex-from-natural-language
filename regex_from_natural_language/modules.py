@@ -1,4 +1,4 @@
-# https://github.com/keon/seq2seq
+# Modified from https://github.com/keon/seq2seq
 
 import math
 

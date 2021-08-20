@@ -19,6 +19,7 @@ class LitSeq2Seq(LightningModule):
         tgt_tokenizer: Tokenizer,
         lr: float,
         weight_decay: float,
+        factor: float,
         patience: int,
         embedding_dim: int,
         hidden_dim: int,
@@ -32,6 +33,7 @@ class LitSeq2Seq(LightningModule):
         self.tgt_tokenizer = tgt_tokenizer
         self.lr = lr
         self.weight_decay = weight_decay
+        self.factor = factor
         self.patience = patience
         self.teacher_forcing_ratio = teacher_forcing_ratio
 
@@ -114,7 +116,9 @@ class LitSeq2Seq(LightningModule):
 
     def configure_optimizers(self):
         optimizer = AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        scheduler = ReduceLROnPlateau(optimizer, patience=self.patience, threshold=0.001, mode="min")
+        scheduler = ReduceLROnPlateau(
+            optimizer, factor=self.factor, patience=self.patience, threshold=0.001, mode="min"
+        )
         return {
             "optimizer": optimizer,
             "scheduler": {
