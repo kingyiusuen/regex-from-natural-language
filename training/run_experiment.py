@@ -17,10 +17,11 @@ def _setup_parser() -> ArgumentParser:
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--weight_decay", type=float, default=0.99)
+    parser.add_argument("--patience", type=int, default=2)
     parser.add_argument("--embedding_dim", type=int, default=64)
     parser.add_argument("--hidden_dim", type=int, default=128)
     parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--dropout", type=int, default=0.3)
+    parser.add_argument("--dropout", type=float, default=0.3)
     parser.add_argument("--teacher_forcing_ratio", type=float, default=0.5)
     return parser
 
@@ -44,6 +45,7 @@ def main() -> None:
         tgt_tokenizer=datamodule.tgt_tokenizer,
         lr=args.lr,
         weight_decay=args.weight_decay,
+        patience=args.patience,
         embedding_dim=args.embedding_dim,
         hidden_dim=args.hidden_dim,
         num_layers=args.num_layers,

@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from pytorch_lightning import LightningModule
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from .metrics import CER
 from .modules import Decoder, Encoder
@@ -18,6 +19,7 @@ class LitSeq2Seq(LightningModule):
         tgt_tokenizer: Tokenizer,
         lr: float,
         weight_decay: float,
+        patience: int,
         embedding_dim: int,
         hidden_dim: int,
         num_layers: int,
@@ -30,6 +32,7 @@ class LitSeq2Seq(LightningModule):
         self.tgt_tokenizer = tgt_tokenizer
         self.lr = lr
         self.weight_decay = weight_decay
+        self.patience = patience
         self.teacher_forcing_ratio = teacher_forcing_ratio
 
         src_vocab_size = len(self.src_tokenizer)
@@ -110,4 +113,13 @@ class LitSeq2Seq(LightningModule):
         return self.shared_step(batch, "test")
 
     def configure_optimizers(self):
-        return AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        scheduler = ReduceLROnPlateau(optimizer, patience=self.patience, threshold=0.001, mode="min")
+        return {
+            "optimizer": optimizer,
+            "scheduler": {
+                "scheduler": scheduler,
+                "interval": "epoch",
+                "frequency": 1,
+            },
+        }
